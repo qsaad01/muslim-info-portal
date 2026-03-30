@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin - Add Scheme</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f5f5f5;
+    }
+
+    h2 {
+      color: #333;
+    }
+
+    form {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #2e7d32;
+      color: white;
+      padding: 10px;
+      border: none;
+      width: 100%;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1b5e20;
+    }
+
+    #result {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Add New Scheme</h2>
+
+<form id="schemeForm">
+
+<label>Scheme Name (English):</label>
+<input type="text" id="name" required>
+
+<label>Scheme Name (Hindi):</label>
+<input type="text" id="name_hi">
+
+<label>Scheme Name (Urdu):</label>
+<input type="text" id="name_ur">
+
+  <label>Category:</label>
+  <select id="category" required>
+    <option value="">Select Category</option>
+    <option value="Education">Education</option>
+    <option value="Healthcare">Healthcare</option>
+    <option value="Financial Aid">Financial Aid</option>
+  </select>
+
+  <label>City:</label>
+  <select id="city" required>
+    <option value="">Select City</option>
+    <option value="Mumbai">Mumbai</option>
+    <option value="Pune">Pune</option>
+    <option value="Nagpur">Nagpur</option>
+    <option value="Aurangabad">Aurangabad</option>
+  </select>
+
+  <label>Deadline:</label>
+  <input type="date" id="deadline" required>
+
+<label>Eligibility (English):</label>
+<textarea id="eligibility"></textarea>
+
+<label>Eligibility (Hindi):</label>
+<textarea id="eligibility_hi"></textarea>
+
+<label>Eligibility (Urdu):</label>
+<textarea id="eligibility_ur"></textarea>
+
+  <label>Contact Phone:</label>
+  <input type="text" id="phone" placeholder="e.g. 022-12345678">
+
+  <label>Official Website:</label>
+  <input type="text" id="url" placeholder="https://example.org">
+
+  <button type="submit">Add Scheme</button>
+
+</form>
+
+<p id="result"></p>
+
+<script>
+const data = {
+  name: document.getElementById('name').value,
+  name_hi: document.getElementById('name_hi').value,
+  name_ur: document.getElementById('name_ur').value,
+  category: document.getElementById('category').value,
+  city: document.getElementById('city').value,
+  deadline: document.getElementById('deadline').value,
+  eligibility: document.getElementById('eligibility').value,
+  eligibility_hi: document.getElementById('eligibility_hi').value,
+  eligibility_ur: document.getElementById('eligibility_ur').value,
+  contact_phone: document.getElementById('phone').value,
+  official_url: document.getElementById('url').value
+  };
+
+  try {
+    const response = await fetch('http://localhost:3000/api/schemes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    document.getElementById('result').innerText = result.message;
+
+    document.getElementById('schemeForm').reset();
+
+  } catch (error) {
+    document.getElementById('result').innerText = "Error: Could not connect to server.";
+  }
+});
+</script>
+
+</body>
+</html>

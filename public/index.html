@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Muslim Information Portal</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #f2f2f2;
+}
+
+header {
+  background: #004d40;
+  color: white;
+  padding: 15px;
+  text-align: center;
+}
+
+header h1 {
+  margin: 5px 0;
+  font-size: 22px;
+}
+
+header p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.container {
+  padding: 15px;
+}
+
+.controls {
+  background: white;
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+.controls input,
+.controls select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.scheme-card {
+  background: white;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 6px;
+  border-left: 5px solid #00796b;
+}
+
+.scheme-card h3 {
+  margin: 0 0 5px 0;
+  color: #004d40;
+}
+
+.label {
+  font-weight: bold;
+}
+
+.button {
+  display: inline-block;
+  background: #00796b;
+  color: white;
+  padding: 8px 12px;
+  text-decoration: none;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+
+.footer {
+  text-align: center;
+  padding: 15px;
+  font-size: 12px;
+  color: #666;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Muslim Information Portal</h1>
+  <p>Scholarships • Healthcare • Financial Support</p>
+</header>
+
+<div class="container">
+
+<div class="controls">
+
+<label>Language</label>
+<select id="language">
+  <option value="en">English</option>
+  <option value="hi">हिंदी</option>
+  <option value="ur">اردو</option>
+</select>
+
+<label>Search</label>
+<input type="text" id="search" placeholder="Search by scheme name...">
+
+<label>Category</label>
+<select id="categoryFilter">
+  <option value="">All Categories</option>
+  <option value="Education">Education</option>
+  <option value="Healthcare">Healthcare</option>
+  <option value="Financial Aid">Financial Aid</option>
+</select>
+
+<label>City</label>
+<select id="cityFilter">
+  <option value="">All Cities</option>
+  <option value="Mumbai">Mumbai</option>
+  <option value="Pune">Pune</option>
+  <option value="Nagpur">Nagpur</option>
+  <option value="Aurangabad">Aurangabad</option>
+</select>
+
+</div>
+
+<div id="schemes"></div>
+
+</div>
+
+<div class="footer">
+  Information gathered from official government and verified charitable sources.
+  Always confirm on official website before applying.
+</div>
+
+<script>
+let allSchemes = [];
+
+async function fetchSchemes() {
+  try {
+    const response = await fetch("http://localhost:3000/api/schemes");
+    allSchemes = await response.json();
+    applyFilters();
+  } catch (err) {
+    document.getElementById("schemes").innerHTML =
+      "<p>Unable to load data. Please check internet or server.</p>";
+  }
+}
+
+function getText(s, field) {
+  const lang = document.getElementById("language").value;
+
+  if (lang === "hi" && s[field + "_hi"]) return s[field + "_hi"];
+  if (lang === "ur" && s[field + "_ur"]) return s[field + "_ur"];
+
+  return s[field] || "";
+}
+
+function renderSchemes(list) {
+  const container = document.getElementById("schemes");
+  container.innerHTML = "";
+
+  if (list.length === 0) {
+    container.innerHTML = "<p>No schemes found.</p>";
+    return;
+  }
+
+  list.forEach(s => {
+    const div = document.createElement("div");
+    div.className = "scheme-card";
+
+    div.innerHTML = `
+      <h3>${getText(s, "name")}</h3>
+
+      <p><span class="label">Category:</span> ${s.category}</p>
+      <p><span class="label">City:</span> ${s.city}</p>
+      <p><span class="label">Deadline:</span> ${s.deadline ? new Date(s.deadline).toLocaleDateString() : "Not specified"}</p>
+
+      <p><span class="label">Eligibility:</span> ${getText(s, "eligibility") || "Not specified"}</p>
+
+      <p><span class="label">Contact:</span> ${s.contact_phone || "Not available"}</p>
+
+      ${s.official_url ? `<a class="button" href="${s.official_url}" target="_blank">Open Official Website</a>` : ""}
+    `;
+
+    container.appendChild(div);
+  });
+}
+
+function applyFilters() {
+  const search = document.getElementById("search").value.toLowerCase();
+  const category = document.getElementById("categoryFilter").value;
+  const city = document.getElementById("cityFilter").value;
+
+  const filtered = allSchemes.filter(s =>
+    (getText(s, "name").toLowerCase().includes(search)) &&
+    (category === "" || s.category === category) &&
+    (city === "" || s.city === city)
+  );
+
+  renderSchemes(filtered);
+}
+
+document.getElementById("search").addEventListener("input", applyFilters);
+document.getElementById("categoryFilter").addEventListener("change", applyFilters);
+document.getElementById("cityFilter").addEventListener("change", applyFilters);
+document.getElementById("language").addEventListener("change", applyFilters);
+
+fetchSchemes();
+</script>
+
+</body>
+</html>
