@@ -1,14 +1,23 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../db');
 
-router.post('/', async (req, res) => {
-  const { name, email, message } = req.body;
-  await db.query(
-    'INSERT INTO submissions(name,email,message) VALUES($1,$2,$3)',
-    [name, email, message]
-  );
-  res.json({ message: 'Submission received' });
-});
+module.exports = (pool) => {
+  const router = express.Router();
 
-module.exports = router;
+  router.post('/', async (req, res) => {
+    const { name, email, message } = req.body;
+
+    try {
+      await pool.query(
+        'INSERT INTO submissions (name, email, message) VALUES ($1, $2, $3)',
+        [name, email, message]
+      );
+
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Database error' });
+    }
+  });
+
+  return router;
+};
