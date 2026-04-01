@@ -25,30 +25,6 @@ app.use('/api/schemes', schemesRoute(pool));
 app.use('/api/submissions', submissionsRoute(pool));
 
 /* ===========================
-   TEMPORARY ROUTE
-   Inserts one sample scheme
-=========================== */
-
-app.get('/add-sample', async (req, res) => {
-  try {
-    await pool.query(`
-      INSERT INTO schemes (name, description, eligibility, link)
-      VALUES (
-        'Scholarship for Minority Students',
-        'Government scholarship for minority community students.',
-        'Students from recognized minority communities',
-        'https://scholarships.gov.in'
-      );
-    `);
-
-    res.send('Sample scheme inserted successfully');
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Insert failed');
-  }
-});
-
-/* ===========================
    START SERVER
 =========================== */
 
