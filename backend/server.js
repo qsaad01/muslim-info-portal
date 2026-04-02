@@ -11,7 +11,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false
+}));
+
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
