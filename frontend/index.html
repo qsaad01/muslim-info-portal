@@ -38,6 +38,12 @@
       flex: 1;
     }
 
+    #resultCount {
+      margin-bottom: 10px;
+      font-size: 14px;
+      color: #555;
+    }
+
     .card {
       background: white;
       padding: 15px;
@@ -82,6 +88,12 @@
     .apply-btn:hover {
       background: #2980b9;
     }
+
+    .no-results {
+      text-align: center;
+      color: #888;
+      margin-top: 20px;
+    }
   </style>
 </head>
 
@@ -111,6 +123,7 @@
     </select>
   </div>
 
+  <div id="resultCount"></div>
   <div id="schemes"></div>
 
 </div>
@@ -119,14 +132,28 @@
 let allSchemes = [];
 
 async function loadSchemes() {
-  const res = await fetch('/api/schemes');
-  allSchemes = await res.json();
-  displaySchemes(allSchemes);
+  try {
+    const res = await fetch('/api/schemes');
+    allSchemes = await res.json();
+    displaySchemes(allSchemes);
+  } catch (err) {
+    console.error(err);
+    document.getElementById('schemes').innerHTML = "<p>Error loading data</p>";
+  }
 }
 
 function displaySchemes(data) {
   const container = document.getElementById('schemes');
+  const resultCount = document.getElementById('resultCount');
+
   container.innerHTML = '';
+
+  resultCount.innerHTML = `<p><strong>${data.length}</strong> schemes found</p>`;
+
+  if (data.length === 0) {
+    container.innerHTML = `<p class="no-results">No schemes found. Try different filters.</p>`;
+    return;
+  }
 
   data.forEach(s => {
     const card = document.createElement('div');
