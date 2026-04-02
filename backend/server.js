@@ -14,8 +14,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-// Serve static frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 /* ===========================
@@ -30,7 +28,7 @@ const pool = new Pool({
 });
 
 /* ===========================
-   HOMEPAGE ROUTE
+   HOMEPAGE
 =========================== */
 
 app.get('/', (req, res) => {
@@ -43,6 +41,23 @@ app.get('/', (req, res) => {
 
 app.use('/api/schemes', schemesRoute(pool));
 app.use('/api/submissions', submissionsRoute(pool));
+
+/* ===========================
+   STEP 1: UPGRADE DATABASE
+=========================== */
+
+app.get('/upgrade-db', async (req, res) => {
+  try {
+    await pool.query(`ALTER TABLE schemes ADD COLUMN IF NOT EXISTS category TEXT;`);
+    await pool.query(`ALTER TABLE schemes ADD COLUMN IF NOT EXISTS provider TEXT;`);
+    await pool.query(`ALTER TABLE schemes ADD COLUMN IF NOT EXISTS location TEXT;`);
+
+    res.send('Database upgraded successfully');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Upgrade failed');
+  }
+});
 
 /* ===========================
    START SERVER
