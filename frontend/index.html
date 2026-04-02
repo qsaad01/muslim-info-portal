@@ -69,10 +69,11 @@
       border-radius: 4px;
       font-size: 12px;
       color: white;
+      background: #95a5a6;
     }
 
-    .gov { background: #27ae60; }
-    .ngo { background: #8e44ad; }
+    .gov   { background: #27ae60; }
+    .ngo   { background: #8e44ad; }
     .state { background: #e67e22; }
 
     .apply-btn {
@@ -85,14 +86,43 @@
       border-radius: 5px;
     }
 
-    .apply-btn:hover {
-      background: #2980b9;
-    }
+    .apply-btn:hover { background: #2980b9; }
 
     .no-results {
       text-align: center;
       color: #888;
       margin-top: 20px;
+    }
+
+    /* ── Pagination buttons ── */
+    #pagination {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+      margin-bottom: 30px;
+    }
+
+    .page-btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      background: white;
+      color: #333;
+      cursor: pointer;
+      font-size: 14px;
+      min-width: 40px;
+    }
+
+    .page-btn:hover  { background: #eaf3fb; }
+    .page-btn.active { background: #2980b9; color: white; border-color: #2980b9; }
+
+    /* ── Loading spinner ── */
+    #loading {
+      text-align: center;
+      padding: 30px;
+      color: #888;
+      display: none;
     }
   </style>
 </head>
@@ -101,14 +131,14 @@
 
 <header>
   <h1>Muslim Info Portal</h1>
-  <p>Find Government & NGO Schemes Easily</p>
+  <p>Find Government &amp; NGO Schemes Easily</p>
 </header>
 
 <div class="container">
 
   <div class="controls">
     <input type="text" id="search" placeholder="Search schemes...">
-    
+
     <select id="category">
       <option value="">All Categories</option>
       <option value="Government">Government</option>
@@ -124,86 +154,133 @@
   </div>
 
   <div id="resultCount"></div>
+  <div id="loading">Loading schemes...</div>
   <div id="schemes"></div>
+  <div id="pagination"></div>
 
 </div>
 
 <script>
-let allSchemes = [];
+  // ── Settings ──────────────────────────────────
+  const LIMIT       = 20;
+  let   currentPage = 1;
+  let   debounceTimer;
 
-async function loadSchemes() {
-  try {
-    const res = await fetch('/api/schemes');
-    allSchemes = await res.json();
-    displaySchemes(allSchemes);
-  } catch (err) {
-    console.error(err);
-    document.getElementById('schemes').innerHTML = "<p>Error loading data</p>";
-  }
-}
-
-function displaySchemes(data) {
-  const container = document.getElementById('schemes');
-  const resultCount = document.getElementById('resultCount');
-
-  container.innerHTML = '';
-
-  resultCount.innerHTML = `<p><strong>${data.length}</strong> schemes found</p>`;
-
-  if (data.length === 0) {
-    container.innerHTML = `<p class="no-results">No schemes found. Try different filters.</p>`;
-    return;
-  }
-
-  data.forEach(s => {
-    const card = document.createElement('div');
-    card.className = 'card';
-
-    let badgeClass = '';
-    if (s.category === 'Government') badgeClass = 'gov';
-    else if (s.category === 'NGO') badgeClass = 'ngo';
-    else badgeClass = 'state';
-
-    card.innerHTML = `
-      <h2>${s.name}</h2>
-
-      <div class="meta">
-        <span class="badge ${badgeClass}">${s.category}</span>
-        <span class="badge">${s.location}</span>
-      </div>
-
-      <p><strong>Provider:</strong> ${s.provider}</p>
-      <p><strong>Eligibility:</strong> ${s.eligibility}</p>
-      <p>${s.description}</p>
-
-      <a class="apply-btn" href="${s.link}" target="_blank">Apply Now</a>
-    `;
-
-    container.appendChild(card);
-  });
-}
-
-function filterSchemes() {
-  const search = document.getElementById('search').value.toLowerCase();
-  const category = document.getElementById('category').value;
-  const location = document.getElementById('location').value;
-
-  const filtered = allSchemes.filter(s => {
-    return (
-      s.name.toLowerCase().includes(search) &&
-      (category === '' || s.category === category) &&
-      (location === '' || s.location === location)
-    );
+  // ── Listen: search box (wait 300ms after typing stops) ──
+  document.getElementById('search').addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(function () {
+      currentPage = 1;
+      fetchSchemes();
+    }, 300);
   });
 
-  displaySchemes(filtered);
-}
+  // ── Listen: dropdowns (fetch immediately) ────
+  document.getElementById('category').addEventListener('change', function () {
+    currentPage = 1;
+    fetchSchemes();
+  });
 
-document.getElementById('search').addEventListener('input', filterSchemes);
-document.getElementById('category').addEventListener('change', filterSchemes);
-document.getElementById('location').addEventListener('change', filterSchemes);
+  document.getElementById('location').addEventListener('change', function () {
+    currentPage = 1;
+    fetchSchemes();
+  });
 
-loadSchemes();
+  // ── Main fetch function ───────────────────────
+  async function fetchSchemes() {
+    const search   = document.getElementById('search').value.trim();
+    const category = document.getElementById('category').value;
+    const location = document.getElementById('location').value;
+
+    const url = '/api/schemes'
+      + '?page='     + currentPage
+      + '&limit='    + LIMIT
+      + '&search='   + encodeURIComponent(search)
+      + '&category=' + encodeURIComponent(category)
+      + '&location=' + encodeURIComponent(location);
+
+    // Show loading message, hide old cards
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('schemes').innerHTML     = '';
+    document.getElementById('pagination').innerHTML  = '';
+
+    try {
+      const res  = await fetch(url);
+      const data = await res.json();
+
+      document.getElementById('loading').style.display = 'none';
+
+      displaySchemes(data.data);
+      displayPagination(data.totalPages);
+
+      document.getElementById('resultCount').innerHTML =
+        '<p><strong>' + data.total + '</strong> schemes found</p>';
+
+    } catch (err) {
+      console.error(err);
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('schemes').innerHTML =
+        '<p class="no-results">Error loading schemes. Please refresh the page.</p>';
+    }
+  }
+
+  // ── Draw the scheme cards ─────────────────────
+  function displaySchemes(schemes) {
+    const container = document.getElementById('schemes');
+    container.innerHTML = '';
+
+    if (!schemes || schemes.length === 0) {
+      container.innerHTML =
+        '<p class="no-results">No schemes found. Try different filters.</p>';
+      return;
+    }
+
+    schemes.forEach(function (s) {
+      let badgeClass = 'state';
+      if (s.category === 'Government') badgeClass = 'gov';
+      else if (s.category === 'NGO')   badgeClass = 'ngo';
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<h2>' + s.name + '</h2>' +
+        '<div class="meta">' +
+          '<span class="badge ' + badgeClass + '">' + s.category + '</span>' +
+          '<span class="badge">' + s.location + '</span>' +
+        '</div>' +
+        '<p><strong>Provider:</strong> '    + s.provider    + '</p>' +
+        '<p><strong>Eligibility:</strong> ' + s.eligibility + '</p>' +
+        '<p>' + s.description + '</p>' +
+        '<a class="apply-btn" href="' + s.link + '" target="_blank">Apply Now</a>';
+
+      container.appendChild(card);
+    });
+  }
+
+  // ── Draw the page number buttons ──────────────
+  function displayPagination(totalPages) {
+    const container = document.getElementById('pagination');
+    container.innerHTML = '';
+
+    if (totalPages <= 1) return;
+
+    for (let i = 1; i <= totalPages; i++) {
+      const btn = document.createElement('button');
+      btn.textContent = i;
+      btn.className   = 'page-btn' + (i === currentPage ? ' active' : '');
+
+      btn.addEventListener('click', function () {
+        currentPage = i;
+        fetchSchemes();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      container.appendChild(btn);
+    }
+  }
+
+  // ── Load schemes when page first opens ────────
+  fetchSchemes();
 </script>
 
 </body>
