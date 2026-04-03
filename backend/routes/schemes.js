@@ -19,7 +19,7 @@ module.exports = (pool) => {
     }
 
     try {
-      let conditions = ['1=1'];
+      let conditions = ['is_active = TRUE', 'is_verified = TRUE'];
       const params = [];
 
       if (search) {
@@ -51,7 +51,11 @@ module.exports = (pool) => {
 
       const dataParams = [...params, limit, offset];
       const result = await pool.query(
-        `SELECT * FROM schemes
+        `SELECT id, name, description, eligibility, link,
+                category, provider, location,
+                contact_name, contact_phone, contact_email,
+                contact_address, deadline, source_url
+         FROM schemes
          WHERE ${whereClause}
          ORDER BY id DESC
          LIMIT $${dataParams.length - 1}

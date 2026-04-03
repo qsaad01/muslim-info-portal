@@ -76,17 +76,73 @@
     .ngo   { background: #8e44ad; }
     .state { background: #e67e22; }
 
+    .contact-box {
+      background: #f0f7ff;
+      border-left: 4px solid #3498db;
+      border-radius: 5px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .contact-box p {
+      margin: 4px 0;
+      color: #444;
+    }
+
+    .contact-box a {
+      color: #2980b9;
+      text-decoration: none;
+    }
+
+    .contact-box a:hover {
+      text-decoration: underline;
+    }
+
+    .deadline-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 8px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
     .apply-btn {
       display: inline-block;
-      margin-top: 10px;
-      padding: 8px 12px;
+      padding: 8px 14px;
       background: #3498db;
       color: white;
       text-decoration: none;
       border-radius: 5px;
+      font-size: 14px;
     }
 
     .apply-btn:hover { background: #2980b9; }
+
+    .whatsapp-btn {
+      display: inline-block;
+      padding: 8px 14px;
+      background: #25D366;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+    }
+
+    .whatsapp-btn:hover { background: #1ebe5d; }
 
     .no-results {
       text-align: center;
@@ -94,7 +150,6 @@
       margin-top: 20px;
     }
 
-    /* ── Pagination buttons ── */
     #pagination {
       display: flex;
       flex-wrap: wrap;
@@ -117,7 +172,6 @@
     .page-btn:hover  { background: #eaf3fb; }
     .page-btn.active { background: #2980b9; color: white; border-color: #2980b9; }
 
-    /* ── Loading spinner ── */
     #loading {
       text-align: center;
       padding: 30px;
@@ -161,12 +215,10 @@
 </div>
 
 <script>
-  // ── Settings ──────────────────────────────────
   const LIMIT       = 20;
   let   currentPage = 1;
   let   debounceTimer;
 
-  // ── Listen: search box (wait 300ms after typing stops) ──
   document.getElementById('search').addEventListener('input', function () {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
@@ -175,7 +227,6 @@
     }, 300);
   });
 
-  // ── Listen: dropdowns (fetch immediately) ────
   document.getElementById('category').addEventListener('change', function () {
     currentPage = 1;
     fetchSchemes();
@@ -186,7 +237,6 @@
     fetchSchemes();
   });
 
-  // ── Main fetch function ───────────────────────
   async function fetchSchemes() {
     const search   = document.getElementById('search').value.trim();
     const category = document.getElementById('category').value;
@@ -199,7 +249,6 @@
       + '&category=' + encodeURIComponent(category)
       + '&location=' + encodeURIComponent(location);
 
-    // Show loading message, hide old cards
     document.getElementById('loading').style.display = 'block';
     document.getElementById('schemes').innerHTML     = '';
     document.getElementById('pagination').innerHTML  = '';
@@ -224,7 +273,14 @@
     }
   }
 
-  // ── Draw the scheme cards ─────────────────────
+  function shareOnWhatsApp(name, link) {
+    var message = '*' + name + '*\n\n'
+      + 'This scheme may help you or someone you know.\n'
+      + 'Apply here: ' + link + '\n\n'
+      + '_Shared via Muslim Info Portal_';
+    window.open('https://wa.me/?text=' + encodeURIComponent(message), '_blank');
+  }
+
   function displaySchemes(schemes) {
     const container = document.getElementById('schemes');
     container.innerHTML = '';
@@ -240,46 +296,73 @@
       if (s.category === 'Government') badgeClass = 'gov';
       else if (s.category === 'NGO')   badgeClass = 'ngo';
 
+      // Build contact box only if at least one contact field exists
+      var contactHtml = '';
+      if (s.contact_phone || s.contact_email || s.contact_address) {
+        contactHtml = '<div class="contact-box">';
+        if (s.contact_name)    contactHtml += '<p><strong>' + s.contact_name + '</strong></p>';
+        if (s.contact_phone)   contactHtml += '<p>Phone: <a href="tel:' + s.contact_phone + '">' + s.contact_phone + '</a></p>';
+        if (s.contact_email)   contactHtml += '<p>Email: <a href="mailto:' + s.contact_email + '">' + s.contact_email + '</a></p>';
+        if (s.contact_address) contactHtml += '<p>Address: ' + s.contact_address + '</p>';
+        contactHtml += '</div>';
+      }
+
+      // Deadline badge
+      var deadlineHtml = '';
+      if (s.deadline) {
+        var d = new Date(s.deadline);
+        var today = new Date();
+        var daysLeft = Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+        if (daysLeft < 0) {
+          deadlineHtml = '<div class="deadline-badge" style="background:#f8d7da;color:#842029;border-color:#f5c2c7;">Expired</div>';
+        } else if (daysLeft <= 30) {
+          deadlineHtml = '<div class="deadline-badge">Deadline: ' + d.toLocaleDateString('en-IN') + ' (' + daysLeft + ' days left)</div>';
+        } else {
+          deadlineHtml = '<div class="deadline-badge" style="background:#d1e7dd;color:#0a3622;border-color:#a3cfbb;">Open — ' + d.toLocaleDateString('en-IN') + '</div>';
+        }
+      }
+
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML =
         '<h2>' + s.name + '</h2>' +
         '<div class="meta">' +
           '<span class="badge ' + badgeClass + '">' + s.category + '</span>' +
-          '<span class="badge">' + s.location + '</span>' +
+          '<span class="badge">' + (s.location || '') + '</span>' +
         '</div>' +
-        '<p><strong>Provider:</strong> '    + s.provider    + '</p>' +
-        '<p><strong>Eligibility:</strong> ' + s.eligibility + '</p>' +
-        '<p>' + s.description + '</p>' +
-        '<a class="apply-btn" href="' + s.link + '" target="_blank">Apply Now</a>';
+        '<p><strong>Provider:</strong> ' + (s.provider || 'N/A') + '</p>' +
+        '<p><strong>Eligibility:</strong> ' + (s.eligibility || 'N/A') + '</p>' +
+        '<p>' + (s.description || '') + '</p>' +
+        deadlineHtml +
+        contactHtml +
+        '<div class="card-actions">' +
+          '<a class="apply-btn" href="' + (s.link || '#') + '" target="_blank">Apply Now</a>' +
+          '<button class="whatsapp-btn" onclick="shareOnWhatsApp(\'' +
+            s.name.replace(/'/g, '') + '\', \'' + (s.link || '') + '\')">Share on WhatsApp</button>' +
+        '</div>';
 
       container.appendChild(card);
     });
   }
 
-  // ── Draw the page number buttons ──────────────
   function displayPagination(totalPages) {
     const container = document.getElementById('pagination');
     container.innerHTML = '';
-
     if (totalPages <= 1) return;
 
     for (let i = 1; i <= totalPages; i++) {
       const btn = document.createElement('button');
       btn.textContent = i;
       btn.className   = 'page-btn' + (i === currentPage ? ' active' : '');
-
       btn.addEventListener('click', function () {
         currentPage = i;
         fetchSchemes();
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
-
       container.appendChild(btn);
     }
   }
 
-  // ── Load schemes when page first opens ────────
   fetchSchemes();
 </script>
 
