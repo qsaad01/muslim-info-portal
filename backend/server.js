@@ -1,29 +1,32 @@
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const { Pool } = require('pg');
-const schemesRoute = require('./routes/schemes');
+const express      = require('express');
+const cors         = require('cors');
+const path         = require('path');
+const { Pool }     = require('pg');
+const cookieParser = require('cookie-parser');
+const rateLimit    = require('express-rate-limit');
+const helmet       = require('helmet');
+
+const schemesRoute     = require('./routes/schemes');
 const submissionsRoute = require('./routes/submissions');
-const rateLimit = require('express-rate-limit');
-const helmet = require('helmet');
+const adminRoute       = require('./routes/admin');
 const { startScheduler } = require('./scrapers/scheduler');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(helmet({
-  contentSecurityPolicy: false
-}));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
+  ssl: { rejectUnauthorized: false },
 });
+
+app.set('pool', pool);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
@@ -31,6 +34,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/schemes', schemesRoute(pool));
 app.use('/api/submissions', submissionsRoute(pool));
+app.use('/admin', adminRoute);
 
 /* ===========================
    INSERT REAL DATA
