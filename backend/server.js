@@ -6,6 +6,7 @@ const schemesRoute = require('./routes/schemes');
 const submissionsRoute = require('./routes/submissions');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const { startScheduler } = require('./scrapers/scheduler');
 
 const app = express();
 
@@ -14,7 +15,6 @@ app.use(express.json());
 app.use(helmet({
   contentSecurityPolicy: false
 }));
-
 app.use('/api/', rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 app.use(express.static(path.join(__dirname, '../frontend')));
 
@@ -114,4 +114,5 @@ app.get('/insert-real-data', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('Server running on port ' + PORT);
+  startScheduler(pool);
 });
